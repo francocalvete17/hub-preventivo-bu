@@ -1,2 +1,5 @@
-streamlit
+fastapi
+uvicorn
+python-multipart
 pandas
+openpyxl
