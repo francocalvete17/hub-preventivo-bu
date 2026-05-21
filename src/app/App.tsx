@@ -950,11 +950,11 @@ export default function App() {
     formData.append('file', file);
 
     try {
-      // ⚠️ Recordá cambiar esta URL por la URL pública real de tu backend en Render
-      const response = await fetch('https://tu-servidor-python.render.com/analizar-pm', {
-        method: 'POST',
-        body: formData,
-      });
+// ASÍ TIENE QUE QUEDAR LA LÍNEA DEL FETCH EN TU GITHUB:
+const response = await fetch('https://hub-preventivo-bu.onrender.com/analizar-pm', {
+  method: 'POST',
+  body: formData,
+});
       
       const result = await response.json();
       
