@@ -216,20 +216,24 @@ function AppHeader({ shiftView, setShiftView, rightSlot }: {
   );
 }
 
-// ── AM Screen ─────────────────────────────────────────────────────────────────
+// ── AM Screen Modificada ───────────────────────────────────────────────────────
 
-function AMScreen() {
+interface AMScreenProps {
+  amRows: AMRow[];
+}
+
+function AMScreen({ amRows }: AMScreenProps) {
   const [sortCol, setSortCol] = useState<"idRuta" | "shpsProyectados" | "volTeorico">("shpsProyectados");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [search, setSearch] = useState("");
 
-  const totalShps   = AM_ROWS.reduce((s, r) => s + r.shpsProyectados, 0);
-  const totalVolTeo = AM_ROWS.reduce((s, r) => s + r.volTeorico, 0);
-  const totalVolCap = AM_ROWS.reduce((s, r) => s + r.capAsignada, 0);
-  const altoCount   = AM_ROWS.filter(r => r.riesgo === "ALTO").length;
-  const medioCount  = AM_ROWS.filter(r => r.riesgo === "MEDIO").length;
-  const bajoCount   = AM_ROWS.filter(r => r.riesgo === "BAJO").length;
-  const satPct      = Math.round((totalVolTeo / totalVolCap) * 100);
+  const totalShps   = amRows.reduce((s, r) => s + r.shpsProyectados, 0);
+  const totalVolTeo = amRows.reduce((s, r) => s + r.volTeorico, 0);
+  const totalVolCap = amRows.reduce((s, r) => s + r.capAsignada, 0);
+  const altoCount   = amRows.filter(r => r.riesgo === "ALTO").length;
+  const medioCount  = amRows.filter(r => r.riesgo === "MEDIO").length;
+  const bajoCount   = amRows.filter(r => r.riesgo === "BAJO").length;
+  const satPct      = totalVolCap > 0 ? Math.round((totalVolTeo / totalVolCap) * 100) : 0;
 
   const toggleSort = (col: typeof sortCol) => {
     if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -241,7 +245,7 @@ function AMScreen() {
       ? sortDir === "desc" ? <ChevronDown size={11} /> : <ChevronUp size={11} />
       : <ChevronDown size={11} style={{ opacity: 0.2 }} />;
 
-  const filtered = AM_ROWS
+  const filtered = amRows
     .filter(r =>
       !search ||
       r.sellerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -284,7 +288,7 @@ function AMScreen() {
           { icon: <Package size={16} />, label: "SHPs Proyectados",  value: totalShps.toLocaleString(), sub: "volumen teórico AM", color: "#60a5fa", bg: "rgba(59,130,246,0.08)", border: "rgba(59,130,246,0.22)" },
           { icon: <BarChart2 size={16} />, label: "Saturación de Cap.", value: `${satPct}%`, sub: `${totalVolTeo.toFixed(1)} / ${totalVolCap.toFixed(1)} m³`, color: satPct > 100 ? "#f87171" : satPct > 85 ? "#fb923c" : "#4ade80", bg: satPct > 100 ? "rgba(239,68,68,0.08)" : satPct > 85 ? "rgba(249,115,22,0.08)" : "rgba(34,197,94,0.07)", border: satPct > 100 ? "rgba(239,68,68,0.22)" : satPct > 85 ? "rgba(249,115,22,0.22)" : "rgba(34,197,94,0.2)" },
           { icon: <TrendingUp size={16} />, label: "Rutas en Riesgo ALTO", value: altoCount, sub: `${medioCount} MEDIO · ${bajoCount} BAJO`, color: "#f87171", bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.22)" },
-          { icon: <Clock size={16} />, label: "Sellers procesados", value: AM_ROWS.length, sub: "turno AM preventivo", color: "#94a3b8", bg: "rgba(148,163,184,0.06)", border: "rgba(148,163,184,0.15)" },
+          { icon: <Clock size={16} />, label: "Sellers procesados", value: amRows.length, sub: "turno AM preventivo", color: "#94a3b8", bg: "rgba(148,163,184,0.06)", border: "rgba(148,163,184,0.15)" },
         ].map(({ icon, label, value, sub, color, bg, border }) => (
           <div key={label} className="rounded-xl px-4 py-3 flex flex-col gap-1" style={{ background: bg, border: `1px solid ${border}` }}>
             <div className="flex items-center gap-1.5 text-xs mb-0.5" style={{ color: "#475569", fontFamily: "'DM Mono', monospace" }}>
@@ -306,8 +310,8 @@ function AMScreen() {
           </span>
         </div>
         <div className="flex flex-col gap-2">
-          {AM_ROWS.map(row => {
-            const pct = Math.min(100, Math.round((row.volTeorico / row.capAsignada) * 100));
+          {amRows.map(row => {
+            const pct = row.capAsignada > 0 ? Math.min(100, Math.round((row.volTeorico / row.capAsignada) * 100)) : 0;
             const barColor = pct > 100 ? "#ef4444" : pct > 85 ? "#f97316" : "#3b82f6";
             return (
               <div key={row.idRuta} className="flex items-center gap-3">
@@ -332,7 +336,7 @@ function AMScreen() {
           <BarChart2 size={15} style={{ color: "#60a5fa" }} />
           <span className="text-sm font-semibold" style={{ color: "#f1f5f9" }}>Tabla de Pronóstico AM — Volumen Teórico</span>
           <span className="ml-auto text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.25)", color: "#93c5fd", fontFamily: "'DM Mono', monospace" }}>
-            {AM_ROWS.length} rutas procesadas
+            {amRows.length} rutas procesadas
           </span>
           <div className="relative">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: "#334155" }} />
@@ -373,7 +377,7 @@ function AMScreen() {
               )}
               {filtered.map((row, idx) => {
                 const rs = riesgoStyle(row.riesgo);
-                const pct = Math.min(100, Math.round((row.volTeorico / row.capAsignada) * 100));
+                const pct = row.capAsignada > 0 ? Math.min(100, Math.round((row.volTeorico / row.capAsignada) * 100)) : 0;
                 const barColor = pct > 100 ? "#ef4444" : pct > 85 ? "#f97316" : "#3b82f6";
                 const accent = pct > 100 ? "#ef4444" : pct > 85 ? "#f97316" : "#3b82f6";
                 return (
@@ -463,7 +467,7 @@ function AMScreen() {
 
       <div className="pb-2 flex items-center justify-between text-xs" style={{ color: "#1e293b", fontFamily: "'DM Mono', monospace" }}>
         <span>LogiPredict · BU &amp; UZ Control Center · v2.4.1</span>
-        <span>Turno AM · 08:00 · {AM_ROWS.length} sellers procesados</span>
+        <span>Turno AM · 08:00 · {amRows.length} sellers procesados</span>
       </div>
     </div>
   );
@@ -628,9 +632,13 @@ function DispatchModal({ seller, onClose, onConfirm }: DispatchModalProps) {
   );
 }
 
-// ── PM Screen ─────────────────────────────────────────────────────────────────
+// ── PM Screen Modificada ───────────────────────────────────────────────────────
 
-function PMScreen() {
+interface PMScreenProps {
+  pmRows: PMRow[];
+}
+
+function PMScreen({ pmRows }: PMScreenProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>("BU");
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<"idRuta" | "shpsCaidos">("shpsCaidos");
@@ -639,11 +647,11 @@ function PMScreen() {
   const [loading, setLoading] = useState<Set<string>>(new Set());
   const [modalSeller, setModalSeller] = useState<{ name: string; id: string; shps: number; key: string } | null>(null);
 
-  const buRows  = PM_ROWS.filter(r => classify(r.shpsCaidos) === "BU");
-  const uzRows  = PM_ROWS.filter(r => classify(r.shpsCaidos) === "UZ");
-  const absRows = PM_ROWS.filter(r => classify(r.shpsCaidos) === "ABSORBER");
-  const multicuenta = PM_ROWS.filter(r => r.isMulticuenta).length;
-  const totalSHPs = PM_ROWS.reduce((s, r) => s + r.shpsCaidos, 0);
+  const buRows  = pmRows.filter(r => classify(r.shpsCaidos) === "BU");
+  const uzRows  = pmRows.filter(r => classify(r.shpsCaidos) === "UZ");
+  const absRows = pmRows.filter(r => classify(r.shpsCaidos) === "ABSORBER");
+  const multicuenta = pmRows.filter(r => r.isMulticuenta).length;
+  const totalSHPs = pmRows.reduce((s, r) => s + r.shpsCaidos, 0);
 
   const tabRows = activeTab === "BU" ? buRows : activeTab === "UZ" ? uzRows : absRows;
 
@@ -681,7 +689,7 @@ function PMScreen() {
       : <ChevronDown size={11} style={{ opacity: 0.2 }} />;
 
   const TAB_CFG = {
-    BU:       { emoji: "🚨", label: "Solicitar BU",      sublabel: "≥ 30 SHPs",  count: buRows.length,  totalShps: buRows.reduce((s,r)=>s+r.shpsCaidos,0),  color: "#f87171", colorDim: "rgba(239,68,68,0.15)",   border: "rgba(239,68,68,0.45)",  borderDim: "rgba(239,68,68,0.2)",   glow: "rgba(239,68,68,0.18)"  },
+    BU:       { emoji: "🚨", label: "Solicitar BU",       sublabel: "≥ 30 SHPs",  count: buRows.length,  totalShps: buRows.reduce((s,r)=>s+r.shpsCaidos,0),  color: "#f87171", colorDim: "rgba(239,68,68,0.15)",   border: "rgba(239,68,68,0.45)", borderDim: "rgba(239,68,68,0.2)",   glow: "rgba(239,68,68,0.18)"  },
     UZ:       { emoji: "🚐", label: "Unidad en Zona/UZ", sublabel: "15–29 SHPs", count: uzRows.length,  totalShps: uzRows.reduce((s,r)=>s+r.shpsCaidos,0),  color: "#fb923c", colorDim: "rgba(249,115,22,0.15)",  border: "rgba(249,115,22,0.45)", borderDim: "rgba(249,115,22,0.2)",  glow: "rgba(249,115,22,0.18)" },
     ABSORBER: { emoji: "ℹ️", label: "Bajo Volumen",      sublabel: "< 15 SHPs",  count: absRows.length, totalShps: absRows.reduce((s,r)=>s+r.shpsCaidos,0), color: "#6b7280", colorDim: "rgba(107,114,128,0.12)", border: "rgba(107,114,128,0.4)", borderDim: "rgba(107,114,128,0.15)", glow: "rgba(107,114,128,0.1)" },
   } as const;
@@ -906,7 +914,7 @@ function PMScreen() {
       </div>
 
       {/* Multicuenta radar */}
-      {PM_ROWS.some(r => r.isMulticuenta) && (
+      {pmRows.some(r => r.isMulticuenta) && (
         <div className="rounded-2xl overflow-hidden" style={{ background: "#0c1526", border: "1px solid rgba(251,191,36,0.2)" }}>
           <div className="px-5 py-3 flex items-center gap-3 border-b" style={{ borderColor: "rgba(251,191,36,0.15)", background: "rgba(251,191,36,0.05)" }}>
             <Layers size={15} style={{ color: "#fbbf24" }} />
@@ -917,7 +925,7 @@ function PMScreen() {
 
       <div className="pb-2 flex items-center justify-between text-xs" style={{ color: "#1e293b", fontFamily: "'DM Mono', monospace" }}>
         <span>LogiPredict · BU &amp; UZ Control Center · v2.4.1</span>
-        <span>Turno PM · 14:33 · {PM_ROWS.length} sellers procesados</span>
+        <span>Turno PM · 14:33 · {pmRows.length} sellers procesados</span>
       </div>
     </div>
     </>
@@ -928,57 +936,98 @@ function PMScreen() {
 
 export default function App() {
   const [shiftView, setShiftView] = useState<ShiftView>("PM");
+  
+  const [pmRows, setPmRows] = useState<PMRow[]>(PM_ROWS);
+  const [amRows, setAmRows] = useState<AMRow[]>(AM_ROWS);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const totalSHPs   = PM_ROWS.reduce((s, r) => s + r.shpsCaidos, 0);
-  const multicuenta = PM_ROWS.filter(r => r.isMulticuenta).length;
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      // ⚠️ Recordá cambiar esta URL por la URL pública real de tu backend en Render
+      const response = await fetch('https://tu-servidor-python.render.com/analizar-pm', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (!result.error) {
+        const mappedRows: PMRow[] = result.map((item: any) => ({
+          idRuta: item.idRuta,
+          nombreRuta: item.nombreRuta,
+          idSeller: item.idSeller,
+          sellerName: item.vendedor,
+          shpsCaidos: item.pendientes,
+          isMulticuenta: false
+        }));
+        
+        setPmRows(mappedRows);
+        toast.success("¡Archivo de First Mile procesado con éxito!");
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error("Error al procesar el archivo en el motor de Python.");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const totalSHPs   = pmRows.reduce((s, r) => s + r.shpsCaidos, 0);
+  const multicuenta = pmRows.filter(r => r.isMulticuenta).length;
 
   const headerStats = shiftView === "PM"
     ? [
-        { label: "Total sellers",        value: PM_ROWS.length,            color: "#94a3b8" },
+        { label: "Total sellers",        value: pmRows.length,               color: "#94a3b8" },
         { label: "Total SHPs Pendientes",value: totalSHPs.toLocaleString(), color: "#f87171" },
         { label: "Multicuenta",          value: multicuenta,               color: "#fbbf24" },
       ]
     : [
-        { label: "Rutas AM",             value: AM_ROWS.length,                                                        color: "#94a3b8" },
-        { label: "SHPs Proyectados",     value: AM_ROWS.reduce((s,r)=>s+r.shpsProyectados,0).toLocaleString(),         color: "#60a5fa" },
-        { label: "Riesgo Alto",          value: AM_ROWS.filter(r=>r.riesgo==="ALTO").length,                           color: "#f87171" },
+        { label: "Rutas AM",             value: amRows.length,                                                      color: "#94a3b8" },
+        { label: "SHPs Proyectados",     value: amRows.reduce((s,r)=>s+r.shpsProyectados,0).toLocaleString(),         color: "#60a5fa" },
+        { label: "Riesgo Alto",          value: amRows.filter(r=>r.riesgo==="ALTO").length,                           color: "#f87171" },
       ];
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#070d1a", fontFamily: "'Inter', sans-serif" }}>
-      <Toaster
-        position="bottom-center"
-        toastOptions={{
-          style: {
-            background: "#0f172a",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "#f1f5f9",
-            fontFamily: "'DM Mono', monospace",
-            fontSize: "12px",
-            letterSpacing: "0.01em",
-            padding: "10px 16px",
-            borderRadius: "10px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)",
-            gap: "8px",
-          },
-          closeButton: true,
-        }}
-      />
+      <Toaster position="bottom-center" />
+      
+      {isLoading && (
+        <div className="w-full h-1 bg-red-600 animate-pulse sticky top-0 z-[100]" />
+      )}
+
       <AppHeader
         shiftView={shiftView}
         setShiftView={setShiftView}
         rightSlot={
-          <div className="hidden md:flex items-center gap-5">
-            {headerStats.map(({ label, value, color }) => (
-              <div key={label} className="text-right">
-                <div className="text-xs" style={{ color: "#475569", fontFamily: "'DM Mono', monospace" }}>{label}</div>
-                <div className="font-bold tabular-nums" style={{ color, fontFamily: "'DM Mono', monospace", fontSize: "15px" }}>{value}</div>
-              </div>
-            ))}
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg cursor-pointer transition-all hover:opacity-80 shrink-0"
+              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)", color: "#f87171", fontFamily: "'DM Mono', monospace" }}>
+              <Truck size={12} />
+              {isLoading ? "Procesando..." : "Cargar Archivo diario"}
+              <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} className="hidden" disabled={isLoading} />
+            </label>
+
+            <div className="hidden md:flex items-center gap-5">
+              {headerStats.map(({ label, value, color }) => (
+                <div key={label} className="text-right">
+                  <div className="text-xs" style={{ color: "#475569", fontFamily: "'DM Mono', monospace" }}>{label}</div>
+                  <div className="font-bold tabular-nums" style={{ color, fontFamily: "'DM Mono', monospace", fontSize: "15px" }}>{value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         }
       />
-      {shiftView === "AM" ? <AMScreen /> : <PMScreen />}
+      {shiftView === "AM" ? <AMScreen amRows={amRows} /> : <PMScreen pmRows={pmRows} />}
     </div>
   );
 }
